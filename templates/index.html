@@ -1,0 +1,135 @@
+<!-- <!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Corte de Áudio</title>
+</head>
+<body>
+    <h1>Corte de Áudio</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        <label>Áudio (.mp3): <input type="file" name="audio" accept=".mp3" required></label>
+        <br><br>
+        <label>Início (mm:ss): <input type="text" name="inicio" required></label>
+        <label>Fim (mm:ss): <input type="text" name="fim" required></label>
+        <br><br>
+        <button type="submit">Cortar</button>
+    </form>
+
+    <hr>
+
+    <h2>Cortes Disponíveis</h2>
+    {% if cortes %}
+        <ul>
+            {% for corte in cortes %}
+                <li>
+                    {{ corte }}
+                    <br>
+                    <audio controls>
+                        <source src="{{ url_for('download', filename=corte) }}" type="audio/mpeg">
+                        Seu navegador não suporta áudio.
+                    </audio>
+                </li>
+                <br>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Nenhum corte encontrado.</p>
+    {% endif %}
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Corte de Áudio</title>
+</head>
+<body>
+    <h1>Corte de Áudio</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        <label>Áudio (.mp3): <input type="file" name="audio" accept=".mp3" required></label>
+        <br><br>
+        <label>Início (mm:ss): <input type="text" name="inicio" required></label>
+        <label>Fim (mm:ss): <input type="text" name="fim" required></label>
+        <br><br>
+        <button type="submit">Cortar</button>
+    </form>
+
+    <hr>
+
+    <h2>Cortes Disponíveis</h2>
+    {% if cortes %}
+        <ul>
+            {% for corte in cortes %}
+                <li>
+                    <p><strong>{{ corte }}</strong></p>
+                    <audio id="audio-{{ loop.index }}" controls>
+                        <source src="{{ url_for('download', filename=corte) }}" type="audio/mpeg">
+                        Seu navegador não suporta áudio.
+                    </audio>
+                    <br><br>
+                    <button onclick="iniciarGravacao('{{ corte }}', {{ loop.index }})">🎙️ Gravar</button>
+                    <button onclick="pararGravacao()">⏹️ Parar</button>
+                    <div id="resultado-{{ corte }}"></div>
+                </li>
+                <br>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Nenhum corte encontrado.</p>
+    {% endif %}
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let currentAudioId = null;
+
+        function iniciarGravacao(audioId, index) {
+            currentAudioId = audioId;
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = e => {
+                        if (e.data.size > 0) {
+                            audioChunks.push(e.data);
+                        }
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const formData = new FormData();
+                        formData.append('audio', blob, 'gravacao.webm');
+                        formData.append('audio_id', currentAudioId);
+
+                        fetch('/validar', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(resp => resp.text())
+                        .then(data => {
+                            const resultadoDiv = document.getElementById('resultado-' + currentAudioId);
+                            resultadoDiv.innerHTML = data;
+                        });
+                    };
+
+                    mediaRecorder.start();
+                    console.log("🎙️ Gravação iniciada...");
+                })
+                .catch(err => {
+                    console.error('Erro ao acessar microfone:', err);
+                });
+        }
+
+        function pararGravacao() {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+                console.log("🛑 Gravação parada.");
+            }
+        }
+    </script>
+</body>
+</html>

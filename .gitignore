@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+cortes/
+uploads/
+instance/
+.webm
+*.mp3
+*.wav
